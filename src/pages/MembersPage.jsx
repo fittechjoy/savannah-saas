@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useNavigate } from "react-router-dom";
+
+
+
 
 export default function MembersPage() {
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [filter, setFilter] = useState("all");
 
@@ -162,9 +167,13 @@ export default function MembersPage() {
                   </td>
 
                   <td className="px-6 py-4">
-                    <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
-                      Renew
-                    </button>
+                    <button
+  onClick={() => navigate(`/payments?member=${member.id}`)}
+  className="bg-orange-500 text-white px-3 py-1 rounded-lg"
+>
+  Renew
+</button>
+
                   </td>
                 </tr>
               ))}
