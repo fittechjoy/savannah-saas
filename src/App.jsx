@@ -7,6 +7,8 @@ import PaymentsPage from "./pages/PaymentsPage";
 import AttendancePage from "./pages/AttendancePage";
 import ReportsPage from "./pages/ReportsPage";
 import AddMember from "./pages/AddMember";
+import MembershipPlansPage from "./pages/MembershipPlansPage";
+
 
 
 function App() {
@@ -16,6 +18,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/members" element={<MembersPage />} />
         <Route path="/add-member" element={<AddMember />} />
+        <Route path="/membership-plans" element={<MembershipPlansPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/attendance" element={<AttendancePage />} />
         <Route path="/reports" element={<ReportsPage />} />

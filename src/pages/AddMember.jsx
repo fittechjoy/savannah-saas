@@ -7,8 +7,10 @@ export default function AddMember() {
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+
   const [category, setCategory] = useState("non_tenant");
-  const [planId, setPlanId] = useState("");
+  const [duration, setDuration] = useState("monthly");
+
   const [plans, setPlans] = useState([]);
 
   useEffect(() => {
@@ -26,6 +28,15 @@ export default function AddMember() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const selectedPlan = plans.find(
+      (p) => p.category === category && p.duration === duration
+    );
+
+    if (!selectedPlan) {
+      alert("Plan not found");
+      return;
+    }
+
     // 1️⃣ Create profile
     const { data: profile } = await supabase
       .from("profiles")
@@ -33,25 +44,22 @@ export default function AddMember() {
       .select()
       .single();
 
-    // 2️⃣ Calculate expiry
-    const selectedPlan = plans.find((p) => p.id === planId);
-
     const startDate = new Date();
     let expiryDate = new Date();
 
-    if (selectedPlan.duration === "monthly")
+    if (duration === "monthly")
       expiryDate.setMonth(expiryDate.getMonth() + 1);
 
-    if (selectedPlan.duration === "quarterly")
+    if (duration === "quarterly")
       expiryDate.setMonth(expiryDate.getMonth() + 3);
 
-    if (selectedPlan.duration === "semi_annual")
+    if (duration === "semi_annual")
       expiryDate.setMonth(expiryDate.getMonth() + 6);
 
-    if (selectedPlan.duration === "annual")
+    if (duration === "annual")
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-    // 3️⃣ Create membership
+    // 2️⃣ Create membership
     await supabase.from("memberships").insert([
       {
         user_id: profile.id,
@@ -73,6 +81,7 @@ export default function AddMember() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <input
             type="text"
             placeholder="Full Name"
@@ -91,21 +100,40 @@ export default function AddMember() {
             required
           />
 
+          {/* CATEGORY SELECT */}
           <select
             className="w-full border rounded-lg px-4 py-2"
-            value={planId}
-            onChange={(e) => setPlanId(e.target.value)}
-            required
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
           >
-            <option value="">Select Plan</option>
-            {plans
-              .filter((p) => p.category === category)
-              .map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.duration} - KES {plan.price}
-                </option>
-              ))}
+            <option value="tenant">Tenant</option>
+            <option value="non_tenant">Non Tenant</option>
+            <option value="corporate">Corporate</option>
           </select>
+
+          {/* DURATION SELECT */}
+          <select
+            className="w-full border rounded-lg px-4 py-2"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="semi_annual">Semi Annual</option>
+            <option value="annual">Annual</option>
+          </select>
+
+          {/* Display Price */}
+          <div className="bg-gray-100 p-3 rounded-lg text-sm">
+            Price: KES{" "}
+            {
+              plans.find(
+                (p) =>
+                  p.category === category &&
+                  p.duration === duration
+              )?.price || 0
+            }
+          </div>
 
           <button
             type="submit"
@@ -113,6 +141,7 @@ export default function AddMember() {
           >
             Add Member
           </button>
+
         </form>
       </div>
     </div>
