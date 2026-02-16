@@ -118,65 +118,106 @@ export default function AddMember() {
     )?.price || 0;
 
   return (
-    <div className="flex justify-center px-4">
-      <div className="bg-white shadow rounded-xl p-8 w-full max-w-xl">
+  <div className="max-w-3xl mx-auto">
 
-        <h1 className="text-2xl font-semibold mb-6 text-slate-800">
-          Add Member
-        </h1>
+    {/* Page Header */}
+    <div className="mb-8">
+      <h1 className="text-3xl font-semibold text-black">
+        Add New Member
+      </h1>
+      <p className="text-gray-500 mt-2">
+        Register a new member and record initial payment.
+      </p>
+    </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+    {/* Card */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
 
+      <form onSubmit={handleSubmit} className="space-y-6">
+
+        {/* Name */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Full Name
+          </label>
           <input
             type="text"
-            placeholder="Full Name"
-            className="w-full border rounded-lg px-4 py-2"
+            placeholder="Enter member name"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
           />
+        </div>
 
+        {/* Phone */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Phone Number
+          </label>
           <input
             type="text"
-            placeholder="Phone Number"
-            className="w-full border rounded-lg px-4 py-2"
+            placeholder="Enter phone number"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
           />
+        </div>
 
-          <select
-            className="w-full border rounded-lg px-4 py-2"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="tenant">Tenant</option>
-            <option value="non_tenant">Non Tenant</option>
-            <option value="corporate">Corporate</option>
-          </select>
+        {/* Category + Duration Grid */}
+        <div className="grid md:grid-cols-2 gap-6">
 
-          <select
-            className="w-full border rounded-lg px-4 py-2"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-          >
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="semi_annual">Semi Annual</option>
-            <option value="annual">Annual</option>
-          </select>
-
-          {/* Price Display */}
-          <div className="bg-gray-50 border rounded-lg px-4 py-3 text-sm">
-            <span className="text-slate-500">Price:</span>{" "}
-            <span className="font-semibold text-orange-600">
-              KES {selectedPrice}
-            </span>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Membership Category
+            </label>
+            <select
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="tenant">Tenant</option>
+              <option value="non_tenant">Non Tenant</option>
+              <option value="corporate">Corporate</option>
+            </select>
           </div>
 
-          {/* Payment Method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Plan Duration
+            </label>
+            <select
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            >
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="semi_annual">Semi Annual</option>
+              <option value="annual">Annual</option>
+            </select>
+          </div>
+
+        </div>
+
+        {/* Price Display */}
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex justify-between items-center">
+          <span className="text-gray-500 text-sm">
+            Membership Price
+          </span>
+          <span className="text-xl font-semibold text-orange-500">
+            KES {selectedPrice.toLocaleString()}
+          </span>
+        </div>
+
+        {/* Payment Method */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Payment Method
+          </label>
           <select
-            className="w-full border rounded-lg px-4 py-2"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
             value={method}
             onChange={(e) => setMethod(e.target.value)}
           >
@@ -185,17 +226,21 @@ export default function AddMember() {
             <option value="card">Card</option>
             <option value="bank">Bank Transfer</option>
           </select>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition disabled:opacity-50"
-          >
-            {loading ? "Processing..." : "Add Member"}
-          </button>
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-xl shadow-sm transition disabled:opacity-50"
+        >
+          {loading ? "Processing..." : "Add Member"}
+        </button>
 
-        </form>
-      </div>
+      </form>
     </div>
-  );
+
+  </div>
+);
+
 }

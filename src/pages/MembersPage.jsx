@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
 
-
-
-
 export default function MembersPage() {
   const navigate = useNavigate();
   const [members, setMembers] = useState([]);
@@ -31,9 +28,8 @@ export default function MembersPage() {
     if (filter === "active") return m.status === "active";
     if (filter === "expired") return m.status === "expired";
     if (filter === "expiring") {
-      const today = new Date();
       const sevenDays = new Date();
-      sevenDays.setDate(today.getDate() + 7);
+      sevenDays.setDate(sevenDays.getDate() + 7);
       return (
         m.status === "active" &&
         new Date(m.expiry_date) <= sevenDays
@@ -43,156 +39,105 @@ export default function MembersPage() {
   });
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6 text-slate-800">
-        Savannah Fitness Exchange – Members
-      </h1>
+    <div className="space-y-8">
 
-      {/* Card Container */}
-      <div className="bg-white shadow rounded-xl p-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-semibold text-black">
+          Members
+        </h1>
 
-        {/* Filter + Export */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="space-x-2">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg ${
-                filter === "all"
-                  ? "bg-slate-900 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              All
-            </button>
-
-            <button
-              onClick={() => setFilter("active")}
-              className={`px-4 py-2 rounded-lg ${
-                filter === "active"
-                  ? "bg-slate-900 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              Active
-            </button>
-
-            <button
-              onClick={() => setFilter("expiring")}
-              className={`px-4 py-2 rounded-lg ${
-                filter === "expiring"
-                  ? "bg-slate-900 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              Expiring Soon
-            </button>
-
-            <button
-              onClick={() => setFilter("expired")}
-              className={`px-4 py-2 rounded-lg ${
-                filter === "expired"
-                  ? "bg-slate-900 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              Expired
-            </button>
-          </div>
-
-          <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
-            Export CSV
-          </button>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="min-w-full bg-white">
-            <thead className="bg-gray-100 text-left">
-              <tr>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-600">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-600">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-600">
-                  Plan
-                </th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-600">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-600">
-                  Expiry
-                </th>
-                <th className="px-6 py-3 text-sm font-semibold text-gray-600">
-                  Action
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredMembers.map((member) => (
-                <tr
-                  key={member.id}
-                  className="border-t hover:bg-gray-50"
-                >
-                  <td className="px-6 py-4 font-medium text-slate-800">
-                    {member.profiles?.full_name}
-                  </td>
-
-                  <td className="px-6 py-4 text-gray-600">
-                    {member.profiles?.phone}
-                  </td>
-
-                  <td className="px-6 py-4 text-gray-600">
-                    {member.membership_plans?.duration}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        member.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {member.status}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-4 text-gray-600">
-                    {new Date(
-                      member.expiry_date
-                    ).toLocaleDateString()}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <button
-  onClick={() => navigate(`/payments?member=${member.id}`)}
-  className="bg-orange-500 text-white px-3 py-1 rounded-lg"
->
-  Renew
-</button>
-
-                  </td>
-                </tr>
-              ))}
-
-              {filteredMembers.length === 0 && (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="text-center py-6 text-gray-500"
-                  >
-                    No members found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
+        <button
+          onClick={() => navigate("/add-member")}
+          className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl shadow-sm transition"
+        >
+          + Add Member
+        </button>
       </div>
+
+      {/* Filter Buttons */}
+      <div className="flex gap-3">
+        {["all", "active", "expiring", "expired"].map((type) => (
+          <button
+            key={type}
+            onClick={() => setFilter(type)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+              filter === type
+                ? "bg-black text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            {type.charAt(0).toUpperCase() + type.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
+            <tr>
+              <th className="px-6 py-4 text-left">Name</th>
+              <th className="px-6 py-4 text-left">Phone</th>
+              <th className="px-6 py-4 text-left">Plan</th>
+              <th className="px-6 py-4 text-left">Status</th>
+              <th className="px-6 py-4 text-left">Expiry</th>
+              <th className="px-6 py-4 text-left">Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredMembers.map((member) => (
+              <tr key={member.id} className="border-t hover:bg-orange-50 transition">
+                <td className="px-6 py-4 font-medium text-black">
+                  {member.profiles?.full_name}
+                </td>
+
+                <td className="px-6 py-4 text-gray-600">
+                  {member.profiles?.phone}
+                </td>
+
+                <td className="px-6 py-4 text-gray-600 capitalize">
+                  {member.membership_plans?.duration}
+                </td>
+
+                <td className="px-6 py-4">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      member.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {member.status}
+                  </span>
+                </td>
+
+                <td className="px-6 py-4 text-gray-600">
+                  {new Date(member.expiry_date).toLocaleDateString("en-KE")}
+                </td>
+
+                <td className="px-6 py-4">
+                  <button
+                    onClick={() => navigate(`/payments?member=${member.user_id}`)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-lg text-sm transition"
+                  >
+                    Renew
+                  </button>
+                </td>
+              </tr>
+            ))}
+
+            {filteredMembers.length === 0 && (
+              <tr>
+                <td colSpan="6" className="text-center py-8 text-gray-500">
+                  No members found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   );
 }
