@@ -1,115 +1,144 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-function AttendancePage() {
-  const [activeMembers, setActiveMembers] = useState([]);
-  const [todayCount, setTodayCount] = useState(0);
+export default function AttendancePage() {
+  const [members, setMembers] = useState([]);
+  const [todayAttendance, setTodayAttendance] = useState([]);
+  const [search, setSearch] = useState("");
 
-  // Fetch active memberships with member info
-  const fetchActiveMembers = async () => {
-    const { data, error } = await supabase
-      .from("memberships")
-      .select(`
-        id,
-        user_id,
-        profiles ( full_name )
-      `)
-      .eq("status", "active");
-
-    if (!error) {
-      setActiveMembers(data || []);
-    }
-  };
-
-  // Fetch today's attendance count
-  const fetchTodayAttendance = async () => {
-    const today = new Date().toISOString().split("T")[0];
-
-    const { data, error } = await supabase
-      .from("attendance")
-      .select("*")
-      .gte("checkin_time", `${today}T00:00:00`)
-      .lte("checkin_time", `${today}T23:59:59`);
-
-    if (!error) {
-      setTodayCount(data.length);
-    }
-  };
+  const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    fetchActiveMembers();
+    fetchMembers();
     fetchTodayAttendance();
   }, []);
 
-  // Record attendance
-  const checkInMember = async (userId) => {
-  const today = new Date().toISOString().split("T")[0];
+  const fetchMembers = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name");
 
-  // 1️⃣ Check if already checked in today
-  const { data: existing } = await supabase
-    .from("attendance")
-    .select("*")
-    .eq("user_id", userId)
-    .gte("checkin_time", `${today}T00:00:00`)
-    .lte("checkin_time", `${today}T23:59:59`);
+    setMembers(data || []);
+  };
 
-  if (existing && existing.length > 0) {
-    alert("Member already checked in today.");
-    return;
-  }
+  const fetchTodayAttendance = async () => {
+    const { data } = await supabase
+      .from("attendance")
+      .select("*, profiles(full_name)")
+      .eq("date", today);
 
-  // 2️⃣ Insert new check-in
-  await supabase.from("attendance").insert([
-    {
-      user_id: userId
+    setTodayAttendance(data || []);
+  };
+
+  const handleCheckIn = async (memberId) => {
+    const alreadyChecked = todayAttendance.find(
+      (a) => a.user_id === memberId
+    );
+
+    if (alreadyChecked) {
+      alert("Already checked in today");
+      return;
     }
-  ]);
 
-  alert("Check-in recorded!");
-  fetchTodayAttendance();
-};
+    await supabase.from("attendance").insert([
+      {
+        user_id: memberId,
+        date: today,
+      },
+    ]);
 
+    fetchTodayAttendance();
+  };
+
+  const filteredMembers = members.filter((m) =>
+    m.full_name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div style={{ color: "white" }}>
-      <h1 style={{ color: "orange" }}>Attendance</h1>
+    <div className="space-y-6">
 
-      <h3>Today's Check-ins: {todayCount}</h3>
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-800">
+          Attendance
+        </h1>
+        <p className="text-sm text-slate-500">
+          Track daily member check-ins
+        </p>
+      </div>
 
-      {activeMembers.length === 0 && (
-        <p>No active members found.</p>
-      )}
+      {/* SUMMARY CARD */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <p className="text-sm text-slate-500">Today's Attendance</p>
+        <p className="text-3xl font-bold text-orange-500">
+          {todayAttendance.length}
+        </p>
+      </div>
 
-      {activeMembers.map((member) => (
-        <div
-          key={member.id}
-          style={{
-            padding: "15px",
-            marginBottom: "15px",
-            background: "#1a1a1a",
-            borderRadius: "6px"
-          }}
-        >
-          <strong>
-            {member.profiles?.full_name || "Unknown Member"}
-          </strong>
+      {/* SEARCH */}
+      <input
+        type="text"
+        placeholder="Search member..."
+        className="w-full border rounded-lg px-4 py-2"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-          <button
-            onClick={() => checkInMember(member.user_id)}
-            style={{
-              marginLeft: "15px",
-              padding: "6px 12px",
-              background: "orange",
-              border: "none",
-              cursor: "pointer"
-            }}
-          >
-            Check In
-          </button>
-        </div>
-      ))}
+      {/* MEMBER LIST */}
+      <div className="bg-white rounded-xl shadow divide-y">
+        {filteredMembers.map((member) => {
+          const checkedIn = todayAttendance.find(
+            (a) => a.user_id === member.id
+          );
+
+          return (
+            <div
+              key={member.id}
+              className="flex justify-between items-center p-4"
+            >
+              <p className="text-slate-700">
+                {member.full_name}
+              </p>
+
+              <button
+                onClick={() => handleCheckIn(member.id)}
+                disabled={checkedIn}
+                className={`px-4 py-2 rounded-lg text-white text-sm ${
+                  checkedIn
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-orange-500 hover:bg-orange-600"
+                }`}
+              >
+                {checkedIn ? "Checked In" : "Check In"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* TODAY LOG */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <h2 className="text-sm font-semibold text-slate-600 mb-4">
+          Today's Check-ins
+        </h2>
+
+        {todayAttendance.length === 0 && (
+          <p className="text-sm text-slate-400">
+            No check-ins yet today.
+          </p>
+        )}
+
+        <ul className="space-y-2">
+          {todayAttendance.map((a) => (
+            <li
+              key={a.id}
+              className="text-sm text-slate-700"
+            >
+              {a.profiles?.full_name}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
-
-export default AttendancePage;

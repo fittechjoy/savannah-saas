@@ -35,35 +35,28 @@ export default function PaymentsPage() {
   };
 
   const fetchPayments = async () => {
-  const { data, error } = await supabase
-    .from("payments")
-    .select(`
-      *,
-      profiles:profiles!payments_user_id_fkey (
-        full_name
-      ),
-      memberships (
-        expiry_date,
-        membership_plans (
-          duration
+    const { data, error } = await supabase
+      .from("payments")
+      .select(`
+        *,
+        profiles:profiles!payments_user_id_fkey (
+          full_name
         )
-      )
-    `)
-    .order("payment_date", { ascending: false });
+      `)
+      .order("payment_date", { ascending: false });
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+    if (error) {
+      console.error(error);
+      return;
+    }
 
-  setPayments(data || []);
+    setPayments(data || []);
 
-  const total =
-    data?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+    const total =
+      data?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
-  setTotalRevenue(total);
-};
-
+    setTotalRevenue(total);
+  };
 
   const recordPayment = async () => {
     if (!selectedMember || !amount) {
@@ -71,27 +64,41 @@ export default function PaymentsPage() {
       return;
     }
 
-    // 1️⃣ Insert Payment
-    await supabase.from("payments").insert([
-      {
-        member_id: selectedMember,
-        amount: Number(amount),
-        method: method,
-      },
-    ]);
-
-    // 2️⃣ Get Current Membership
-    const { data: membership } = await supabase
+    // 1️⃣ Get Active Membership
+    const { data: membership, error: membershipError } = await supabase
       .from("memberships")
       .select(`
         *,
         membership_plans ( duration )
       `)
       .eq("user_id", selectedMember)
+      .eq("status", "active")
       .single();
 
-    if (!membership) return;
+    if (membershipError || !membership) {
+      alert("No active membership found.");
+      return;
+    }
 
+    // 2️⃣ Insert Payment (CORRECT columns)
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .insert([
+        {
+          user_id: selectedMember,
+          membership_id: membership.id,
+          amount: Number(amount),
+          method: method,
+        },
+      ]);
+
+    if (paymentError) {
+      console.error(paymentError);
+      alert("Payment failed.");
+      return;
+    }
+
+    // 3️⃣ Extend Expiry Date
     let newExpiry = new Date(membership.expiry_date);
     const duration = membership.membership_plans.duration;
 
@@ -107,7 +114,6 @@ export default function PaymentsPage() {
     if (duration === "annual")
       newExpiry.setFullYear(newExpiry.getFullYear() + 1);
 
-    // 3️⃣ Update Membership
     await supabase
       .from("memberships")
       .update({
@@ -116,7 +122,7 @@ export default function PaymentsPage() {
       })
       .eq("id", membership.id);
 
-    // Reset form
+    // Reset
     setAmount("");
     setMethod("cash");
 
@@ -217,9 +223,13 @@ export default function PaymentsPage() {
                     }
                   >
                     <td className="px-6 py-4">
-                      {new Date(
-                        payment.created_at
-                      ).toLocaleDateString()}
+                      {payment.payment_date
+                        ? new Date(payment.payment_date).toLocaleDateString("en-KE", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "-"}
                     </td>
 
                     <td className="px-6 py-4">
@@ -240,6 +250,7 @@ export default function PaymentsPage() {
           </div>
         )}
       </div>
+
     </div>
   );
 }
