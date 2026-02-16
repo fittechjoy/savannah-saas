@@ -1,6 +1,13 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   const baseStyle =
     "flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200";
@@ -95,10 +102,22 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      {/* Footer */}
-      <div className="text-xs text-gray-500 border-t border-gray-800 pt-4">
-        © {new Date().getFullYear()} Savannah SaaS
-      </div>
+     {/* Footer */}
+<div className="mt-10 pt-6 border-t border-gray-800">
+
+  <button
+    onClick={handleLogout}
+    className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition"
+  >
+    Logout
+  </button>
+
+  <div className="mt-4 text-xs text-gray-500">
+    © {new Date().getFullYear()} Savannah SaaS
+  </div>
+
+</div>
+
 
     </div>
   );

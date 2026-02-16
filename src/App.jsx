@@ -1,9 +1,9 @@
-import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import { supabase } from "./lib/supabase";
 
 import Layout from "./layout/Layout";
-import Login from "./pages/LoginPage";
+import Login from "./pages/Login";
 
 import Dashboard from "./pages/Dashboard";
 import MembersPage from "./pages/MembersPage";
@@ -18,13 +18,11 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get current session
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -38,44 +36,22 @@ function App() {
 
   if (loading) return null;
 
+  if (!session) {
+    return <Login />;
+  }
+
   return (
-    <Routes>
-
-      {/* Public Route */}
-      <Route
-        path="/login"
-        element={
-          !session ? (
-            <Login />
-          ) : (
-            <Navigate to="/" />
-          )
-        }
-      />
-
-      {/* Protected Routes */}
-      <Route
-        path="/*"
-        element={
-          session ? (
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/members" element={<MembersPage />} />
-                <Route path="/add-member" element={<AddMember />} />
-                <Route path="/membership-plans" element={<MembershipPlansPage />} />
-                <Route path="/payments" element={<PaymentsPage />} />
-                <Route path="/attendance" element={<AttendancePage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-              </Routes>
-            </Layout>
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-
-    </Routes>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/members" element={<MembersPage />} />
+        <Route path="/add-member" element={<AddMember />} />
+        <Route path="/membership-plans" element={<MembershipPlansPage />} />
+        <Route path="/payments" element={<PaymentsPage />} />
+        <Route path="/attendance" element={<AttendancePage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+      </Routes>
+    </Layout>
   );
 }
 
