@@ -1,5 +1,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+} from "recharts";
 
 export default function ReportsPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
@@ -7,139 +21,188 @@ export default function ReportsPage() {
   const [expiredMembers, setExpiredMembers] = useState(0);
   const [todayAttendance, setTodayAttendance] = useState(0);
 
+  const [revenueData, setRevenueData] = useState([]);
+  const [attendanceData, setAttendanceData] = useState([]);
+
   useEffect(() => {
     fetchReports();
   }, []);
 
   const fetchReports = async () => {
-    const today = new Date();
-
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
+    const today = new Date().toISOString().split("T")[0];
     const monthStart = new Date();
     monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
 
-    try {
-      // 🔹 Monthly Revenue
-      const { data: payments, error: paymentsError } = await supabase
-        .from("payments")
-        .select("amount, payment_date")
-        .gte("payment_date", monthStart.toISOString());
+    // Payments this month
+    const { data: payments } = await supabase
+      .from("payments")
+      .select("amount, payment_date")
+      .gte("payment_date", monthStart.toISOString());
 
-      if (paymentsError) {
-        console.error("Payments error:", paymentsError);
-      }
+    const revenue =
+      payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
-      const revenue =
-        payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+    setMonthlyRevenue(revenue);
 
-      // 🔹 Membership Status Counts
-      const { data: memberships, error: membershipError } = await supabase
-        .from("memberships")
-        .select("status");
+    // Group revenue by day
+    const grouped = {};
+    payments?.forEach((p) => {
+      const day = new Date(p.payment_date).toLocaleDateString("en-KE", {
+        day: "numeric",
+        month: "short",
+      });
+      grouped[day] = (grouped[day] || 0) + Number(p.amount);
+    });
 
-      if (membershipError) {
-        console.error("Membership error:", membershipError);
-      }
+    const revenueArray = Object.keys(grouped).map((key) => ({
+      day: key,
+      revenue: grouped[key],
+    }));
 
-      const active =
-        memberships?.filter((m) => m.status === "active").length || 0;
+    setRevenueData(revenueArray);
 
-      const expired =
-        memberships?.filter((m) => m.status === "expired").length || 0;
+    // Membership status
+    const { data: memberships } = await supabase
+      .from("memberships")
+      .select("status");
 
-      // 🔹 Today's Attendance (FIXED)
-      const { data: attendance, error: attendanceError } =
-        await supabase
-          .from("attendance")
-          .select("*")
-          .gte("checkin_time", startOfDay.toISOString())
-          .lte("checkin_time", endOfDay.toISOString());
+    const active =
+      memberships?.filter((m) => m.status === "active").length || 0;
+    const expired =
+      memberships?.filter((m) => m.status === "expired").length || 0;
 
-      if (attendanceError) {
-        console.error("Attendance error:", attendanceError);
-      }
+    setActiveMembers(active);
+    setExpiredMembers(expired);
 
-      setMonthlyRevenue(revenue);
-      setActiveMembers(active);
-      setExpiredMembers(expired);
-      setTodayAttendance(attendance?.length || 0);
+    // Attendance Today
+    const { data: attendance } = await supabase
+      .from("attendance")
+      .select("*")
+      .gte("checkin_time", today);
 
-    } catch (err) {
-      console.error("Report fetch failed:", err);
+    setTodayAttendance(attendance?.length || 0);
+
+    // Last 7 days attendance
+    const last7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const formatted = date.toISOString().split("T")[0];
+
+      const { data } = await supabase
+        .from("attendance")
+        .select("*")
+        .gte("checkin_time", formatted);
+
+      last7.push({
+        day: date.toLocaleDateString("en-KE", { weekday: "short" }),
+        count: data?.length || 0,
+      });
     }
+
+    setAttendanceData(last7);
   };
 
+  const statusData = [
+    { name: "Active", value: activeMembers },
+    { name: "Expired", value: expiredMembers },
+  ];
+
+  const COLORS = ["#f97316", "#111111"];
+
   const Card = ({ title, value }) => (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
-      <p className="text-sm text-gray-500">{title}</p>
+    <div className="bg-white rounded-xl shadow p-6 border-l-4 border-orange-500">
+      <p className="text-sm text-slate-500">{title}</p>
       <p className="text-2xl font-bold text-orange-500 mt-2">
         {value}
       </p>
     </div>
   );
 
- return (
-  <div className="max-w-6xl mx-auto space-y-10">
+  return (
+    <div className="max-w-7xl mx-auto space-y-10">
 
-    {/* Header */}
-    <div>
-      <h1 className="text-3xl font-semibold text-black">
-        Reports Dashboard
-      </h1>
-      <p className="text-gray-500 mt-2">
-        Membership health and financial overview.
-      </p>
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-black">
+          Reports Dashboard
+        </h1>
+        <p className="text-slate-500 mt-1">
+          Membership health and financial analytics
+        </p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card title="Monthly Revenue" value={`KES ${monthlyRevenue}`} />
+        <Card title="Active Memberships" value={activeMembers} />
+        <Card title="Expired Memberships" value={expiredMembers} />
+        <Card title="Today's Attendance" value={todayAttendance} />
+      </div>
+
+      {/* Charts */}
+      <div className="grid lg:grid-cols-2 gap-8">
+
+        {/* Revenue Chart */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="font-semibold mb-4 text-black">
+            Revenue Trend
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={revenueData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="day" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="revenue" fill="#f97316" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Membership Pie */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="font-semibold mb-4 text-black">
+            Membership Distribution
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={statusData}
+                dataKey="value"
+                outerRadius={100}
+                label
+              >
+                {statusData.map((entry, index) => (
+                  <Cell key={index} fill={COLORS[index]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Attendance Line */}
+        <div className="bg-white p-6 rounded-xl shadow lg:col-span-2">
+          <h2 className="font-semibold mb-4 text-black">
+            Last 7 Days Attendance
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={attendanceData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="day" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="count"
+                stroke="#f97316"
+                strokeWidth={3}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+      </div>
     </div>
-
-    {/* Cards */}
-    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-      {/* Monthly Revenue */}
-      <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
-        <div className="absolute left-0 top-0 h-full w-1 bg-orange-500 rounded-l-2xl"></div>
-        <p className="text-sm text-gray-500">Monthly Revenue</p>
-        <p className="text-2xl font-bold text-orange-500 mt-2">
-          KES {monthlyRevenue.toLocaleString()}
-        </p>
-      </div>
-
-      {/* Active */}
-      <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
-        <div className="absolute left-0 top-0 h-full w-1 bg-orange-400 rounded-l-2xl"></div>
-        <p className="text-sm text-gray-500">Active Memberships</p>
-        <p className="text-2xl font-bold text-black mt-2">
-          {activeMembers}
-        </p>
-      </div>
-
-      {/* Expired */}
-      <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
-        <div className="absolute left-0 top-0 h-full w-1 bg-orange-300 rounded-l-2xl"></div>
-        <p className="text-sm text-gray-500">Expired Memberships</p>
-        <p className="text-2xl font-bold text-black mt-2">
-          {expiredMembers}
-        </p>
-      </div>
-
-      {/* Attendance */}
-      <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
-        <div className="absolute left-0 top-0 h-full w-1 bg-orange-200 rounded-l-2xl"></div>
-        <p className="text-sm text-gray-500">Today's Attendance</p>
-        <p className="text-2xl font-bold text-black mt-2">
-          {todayAttendance}
-        </p>
-      </div>
-
-    </div>
-
-  </div>
-);
-
-
+  );
 }
