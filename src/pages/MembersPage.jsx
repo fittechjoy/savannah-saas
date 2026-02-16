@@ -39,28 +39,29 @@ export default function MembersPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-semibold text-black">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-black">
           Members
         </h1>
 
         <button
           onClick={() => navigate("/add-member")}
-          className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl shadow-sm transition"
+          className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl shadow-sm transition w-full sm:w-auto"
         >
           + Add Member
         </button>
       </div>
 
       {/* Filter Buttons */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 overflow-x-auto pb-2">
         {["all", "active", "expiring", "expired"].map((type) => (
           <button
             key={type}
             onClick={() => setFilter(type)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition ${
               filter === type
                 ? "bg-black text-white"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -71,8 +72,8 @@ export default function MembersPage() {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
             <tr>
@@ -91,15 +92,12 @@ export default function MembersPage() {
                 <td className="px-6 py-4 font-medium text-black">
                   {member.profiles?.full_name}
                 </td>
-
                 <td className="px-6 py-4 text-gray-600">
                   {member.profiles?.phone}
                 </td>
-
-                <td className="px-6 py-4 text-gray-600 capitalize">
+                <td className="px-6 py-4 capitalize">
                   {member.membership_plans?.duration}
                 </td>
-
                 <td className="px-6 py-4">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -111,11 +109,9 @@ export default function MembersPage() {
                     {member.status}
                   </span>
                 </td>
-
-                <td className="px-6 py-4 text-gray-600">
+                <td className="px-6 py-4">
                   {new Date(member.expiry_date).toLocaleDateString("en-KE")}
                 </td>
-
                 <td className="px-6 py-4">
                   <button
                     onClick={() => navigate(`/payments?member=${member.user_id}`)}
@@ -126,18 +122,56 @@ export default function MembersPage() {
                 </td>
               </tr>
             ))}
-
-            {filteredMembers.length === 0 && (
-              <tr>
-                <td colSpan="6" className="text-center py-8 text-gray-500">
-                  No members found.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
 
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-4">
+        {filteredMembers.map((member) => (
+          <div
+            key={member.id}
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3"
+          >
+            <div className="flex justify-between items-center">
+              <h2 className="font-semibold text-black">
+                {member.profiles?.full_name}
+              </h2>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  member.status === "active"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {member.status}
+              </span>
+            </div>
+
+            <div className="text-sm text-gray-600 space-y-1">
+              <p><span className="font-medium">Phone:</span> {member.profiles?.phone}</p>
+              <p><span className="font-medium">Plan:</span> {member.membership_plans?.duration}</p>
+              <p>
+                <span className="font-medium">Expiry:</span>{" "}
+                {new Date(member.expiry_date).toLocaleDateString("en-KE")}
+              </p>
+            </div>
+
+            <button
+              onClick={() => navigate(`/payments?member=${member.user_id}`)}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-xl transition"
+            >
+              Renew Membership
+            </button>
+          </div>
+        ))}
+
+        {filteredMembers.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No members found.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

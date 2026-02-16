@@ -22,8 +22,11 @@ export default function DashboardPage() {
       .from("memberships")
       .select("status, expiry_date, user_id");
 
-    const activeMembers = memberships?.filter(m => m.status === "active") || [];
-    const expiredMembers = memberships?.filter(m => m.status === "expired") || [];
+    const activeMembers =
+      memberships?.filter((m) => m.status === "active") || [];
+
+    const expiredMembers =
+      memberships?.filter((m) => m.status === "expired") || [];
 
     setActive(activeMembers.length);
     setExpired(expiredMembers.length);
@@ -32,32 +35,38 @@ export default function DashboardPage() {
     sevenDays.setDate(sevenDays.getDate() + 7);
 
     const expiring = activeMembers.filter(
-      m => new Date(m.expiry_date) <= sevenDays
+      (m) => new Date(m.expiry_date) <= sevenDays
     );
 
     setExpiringSoon(expiring);
   };
 
   const Card = ({ title, value }) => (
-    <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-orange-500 hover:shadow-md transition">
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="text-3xl font-bold text-black mt-2">{value}</p>
+    <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border-l-4 border-orange-500 hover:shadow-md transition">
+      <p className="text-xs sm:text-sm text-gray-500 uppercase tracking-wide">
+        {title}
+      </p>
+      <p className="text-2xl sm:text-3xl font-bold text-black mt-2">
+        {value}
+      </p>
     </div>
   );
 
   return (
-    <div className="space-y-10">
+    <div className="px-4 sm:px-6 lg:px-0 max-w-7xl mx-auto space-y-8">
 
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-semibold text-black">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-black">
           Dashboard Overview
         </h1>
-        <p className="text-gray-500 mt-2">
+        <p className="text-gray-500 mt-2 text-sm sm:text-base">
           Monitor membership activity and renewal priorities.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
         <Card title="Total Members" value={total} />
         <Card title="Active Members" value={active} />
         <Card title="Expired Members" value={expired} />

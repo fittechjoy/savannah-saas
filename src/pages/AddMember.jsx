@@ -118,24 +118,24 @@ export default function AddMember() {
     )?.price || 0;
 
   return (
-  <div className="max-w-3xl mx-auto">
+  <div className="px-4 sm:px-6 lg:px-0 max-w-3xl mx-auto">
 
     {/* Page Header */}
-    <div className="mb-8">
-      <h1 className="text-3xl font-semibold text-black">
+    <div className="mb-6 sm:mb-8">
+      <h1 className="text-2xl sm:text-3xl font-semibold text-black">
         Add New Member
       </h1>
-      <p className="text-gray-500 mt-2">
+      <p className="text-gray-500 mt-2 text-sm sm:text-base">
         Register a new member and record initial payment.
       </p>
     </div>
 
     {/* Card */}
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8">
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
-        {/* Name */}
+        {/* Full Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Full Name
@@ -143,7 +143,7 @@ export default function AddMember() {
           <input
             type="text"
             placeholder="Enter member name"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
@@ -156,24 +156,24 @@ export default function AddMember() {
             Phone Number
           </label>
           <input
-            type="text"
+            type="tel"
             placeholder="Enter phone number"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
           />
         </div>
 
-        {/* Category + Duration Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Category + Duration */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Membership Category
             </label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
@@ -188,7 +188,7 @@ export default function AddMember() {
               Plan Duration
             </label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
             >
@@ -202,11 +202,11 @@ export default function AddMember() {
         </div>
 
         {/* Price Display */}
-        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex justify-between items-center">
+        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <span className="text-gray-500 text-sm">
             Membership Price
           </span>
-          <span className="text-xl font-semibold text-orange-500">
+          <span className="text-lg sm:text-xl font-semibold text-orange-500">
             KES {selectedPrice.toLocaleString()}
           </span>
         </div>
@@ -217,7 +217,7 @@ export default function AddMember() {
             Payment Method
           </label>
           <select
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
             value={method}
             onChange={(e) => setMethod(e.target.value)}
           >
@@ -228,19 +228,20 @@ export default function AddMember() {
           </select>
         </div>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-xl shadow-sm transition disabled:opacity-50"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 sm:py-4 rounded-xl shadow-sm transition disabled:opacity-50"
         >
           {loading ? "Processing..." : "Add Member"}
         </button>
 
       </form>
     </div>
-
   </div>
 );
+
+
 
 }

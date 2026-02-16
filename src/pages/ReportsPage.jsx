@@ -120,89 +120,90 @@ export default function ReportsPage() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10">
+  <div className="px-4 sm:px-6 lg:px-0 max-w-7xl mx-auto space-y-8">
 
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-black">
-          Reports Dashboard
-        </h1>
-        <p className="text-slate-500 mt-1">
-          Membership health and financial analytics
-        </p>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card title="Monthly Revenue" value={`KES ${monthlyRevenue}`} />
-        <Card title="Active Memberships" value={activeMembers} />
-        <Card title="Expired Memberships" value={expiredMembers} />
-        <Card title="Today's Attendance" value={todayAttendance} />
-      </div>
-
-      {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-8">
-
-        {/* Revenue Chart */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="font-semibold mb-4 text-black">
-            Revenue Trend
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#f97316" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Membership Pie */}
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="font-semibold mb-4 text-black">
-            Membership Distribution
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={statusData}
-                dataKey="value"
-                outerRadius={100}
-                label
-              >
-                {statusData.map((entry, index) => (
-                  <Cell key={index} fill={COLORS[index]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Attendance Line */}
-        <div className="bg-white p-6 rounded-xl shadow lg:col-span-2">
-          <h2 className="font-semibold mb-4 text-black">
-            Last 7 Days Attendance
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={attendanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="count"
-                stroke="#f97316"
-                strokeWidth={3}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-      </div>
+    {/* Header */}
+    <div>
+      <h1 className="text-2xl sm:text-3xl font-bold text-black">
+        Reports Dashboard
+      </h1>
+      <p className="text-slate-500 mt-1 text-sm sm:text-base">
+        Membership health and financial analytics
+      </p>
     </div>
-  );
+
+    {/* Summary Cards */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+      <Card title="Monthly Revenue" value={`KES ${monthlyRevenue.toLocaleString()}`} />
+      <Card title="Active Memberships" value={activeMembers} />
+      <Card title="Expired Memberships" value={expiredMembers} />
+      <Card title="Today's Attendance" value={todayAttendance} />
+    </div>
+
+    {/* Charts */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+
+      {/* Revenue Chart */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm">
+        <h2 className="font-semibold mb-4 text-black text-sm sm:text-base">
+          Revenue Trend
+        </h2>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={revenueData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Bar dataKey="revenue" fill="#f97316" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Membership Pie */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm">
+        <h2 className="font-semibold mb-4 text-black text-sm sm:text-base">
+          Membership Distribution
+        </h2>
+        <ResponsiveContainer width="100%" height={250}>
+          <PieChart>
+            <Pie
+              data={statusData}
+              dataKey="value"
+              outerRadius={80}
+              label
+            >
+              {statusData.map((entry, index) => (
+                <Cell key={index} fill={COLORS[index]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Attendance Line */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm lg:col-span-2">
+        <h2 className="font-semibold mb-4 text-black text-sm sm:text-base">
+          Last 7 Days Attendance
+        </h2>
+        <ResponsiveContainer width="100%" height={250}>
+          <LineChart data={attendanceData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="count"
+              stroke="#f97316"
+              strokeWidth={3}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+    </div>
+  </div>
+);
+
 }
