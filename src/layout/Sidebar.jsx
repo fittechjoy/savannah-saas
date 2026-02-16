@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import logo from "../assets/logo.png";
 
 
 export default function Sidebar() {
@@ -24,12 +25,15 @@ export default function Sidebar() {
       {/* Logo Section */}
       <div>
         <div className="mb-12">
-          <h1 className="text-2xl font-bold tracking-wide text-orange-500">
-            Savannah
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Fitness Exchange
-          </p>
+          <div className="mb-10 flex justify-center">
+  <img
+    src={logo}
+    alt="Savannah Fitness Exchange"
+    className="w-44 brightness-110"
+  />
+</div>
+
+          
         </div>
 
         {/* Navigation */}
