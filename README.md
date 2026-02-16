@@ -1,16 +1,54 @@
-# React + Vite
+Savannah Fitness Exchange SaaS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern gym management system built with React, Supabase, and Tailwind CSS.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔐 Supabase Authentication (Role-Based Login)
+- 👥 Member Management
+- 💳 Payment Tracking & Revenue Monitoring
+- 📅 Attendance System (Daily Check-ins)
+- 📊 Reports Dashboard
+- 🧾 Membership Plans Management
+- 🔄 Automated Membership Renewal Logic
+- 🎨 Branded Black, Orange & White UI
+- 📱 Mobile Responsive Design
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠 Tech Stack
 
-## Expanding the ESLint configuration
+Frontend:
+- React (Vite)
+- Tailwind CSS
+- React Router
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Backend:
+- Supabase (Auth + Database)
+
+Database:
+- PostgreSQL (via Supabase)
+
+---
+
+## 🗂 Database Schema
+
+Main tables:
+- profiles (linked to auth.users)
+- membership_plans
+- memberships
+- payments
+- attendance
+
+---
+
+## 🔐 Authentication & Roles
+
+Roles supported:
+- admin
+- staff
+- member
+
+Profiles table references `auth.users` for secure login handling.
+
+
