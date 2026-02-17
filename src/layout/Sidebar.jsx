@@ -3,7 +3,8 @@ import { supabase } from "../lib/supabase";
 import logo from "../assets/logo.png";
 
 
-export default function Sidebar() {
+export default function Sidebar({ closeSidebar }) {
+
   const navigate = useNavigate();
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -40,8 +41,9 @@ export default function Sidebar() {
         <nav className="space-y-3">
 
           <NavLink
-            to="/"
-            end
+  to="/"
+  onClick={closeSidebar}
+
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
             }
@@ -51,6 +53,7 @@ export default function Sidebar() {
 
           <NavLink
             to="/members"
+            onClick={closeSidebar}
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
             }
@@ -60,6 +63,7 @@ export default function Sidebar() {
 
           <NavLink
             to="/add-member"
+            onClick={closeSidebar}  
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
             }
@@ -69,6 +73,7 @@ export default function Sidebar() {
 
           <NavLink
             to="/membership-plans"
+            onClick={closeSidebar}  
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
             }
@@ -78,6 +83,7 @@ export default function Sidebar() {
 
           <NavLink
             to="/payments"
+            onClick={closeSidebar}
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
             }
@@ -87,6 +93,7 @@ export default function Sidebar() {
 
           <NavLink
             to="/attendance"
+            onClick={closeSidebar}
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
             }
@@ -96,6 +103,7 @@ export default function Sidebar() {
 
           <NavLink
             to="/reports"
+            onClick={closeSidebar}
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
             }
