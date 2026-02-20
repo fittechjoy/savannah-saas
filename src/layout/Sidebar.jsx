@@ -72,6 +72,16 @@ export default function Sidebar({ closeSidebar }) {
           </NavLink>
 
           <NavLink
+            to="/corporate-companies"
+            onClick={closeSidebar}  
+            className={({ isActive }) =>
+              `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
+            }
+          >
+            Corporate Companies
+          </NavLink>  
+
+          <NavLink
             to="/membership-plans"
             onClick={closeSidebar}  
             className={({ isActive }) =>
@@ -90,6 +100,16 @@ export default function Sidebar({ closeSidebar }) {
           >
             Payments
           </NavLink>
+          <NavLink
+            to="/corporate-billing"
+            onClick={closeSidebar}
+            className={({ isActive }) =>
+              `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
+            }
+          >
+            Corporate Billing
+          </NavLink>
+          
 
           <NavLink
             to="/attendance"

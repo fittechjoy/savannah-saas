@@ -1,11 +1,9 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
-
 import Layout from "./layout/Layout";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-
 import Dashboard from "./pages/Dashboard";
 import MembersPage from "./pages/MembersPage";
 import PaymentsPage from "./pages/PaymentsPage";
@@ -13,6 +11,10 @@ import AttendancePage from "./pages/AttendancePage";
 import ReportsPage from "./pages/ReportsPage";
 import AddMember from "./pages/AddMember";
 import MembershipPlansPage from "./pages/MembershipPlansPage";
+import CorporateBillingPage from "./pages/CorporateBillingPage";
+import CorporateCompaniesPage from "./pages/CorporateCompaniesPage";
+
+
 
 function App() {
   const [session, setSession] = useState(null);
@@ -66,6 +68,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+          <Route
+          path="/corporate-companies"
+          element={
+            <ProtectedRoute user={profile} allowedRoles={["admin"]}>
+              <CorporateCompaniesPage />
+            </ProtectedRoute>
+          }
+        />  
 
         <Route
           path="/membership-plans"
@@ -84,6 +94,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+          <Route
+          path="/corporate-billing"
+          element={
+            <ProtectedRoute user={profile} allowedRoles={["admin"]}>
+              <CorporateBillingPage />
+            </ProtectedRoute>
+          }
+        />
+        
 
         <Route
           path="/attendance"

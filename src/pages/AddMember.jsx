@@ -12,10 +12,27 @@ export default function AddMember() {
   const [method, setMethod] = useState("cash");
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [corporates, setCorporates] = useState([]);
+  const [selectedCorporate, setSelectedCorporate] = useState("");
+
 
   useEffect(() => {
     fetchPlans();
+    fetchCorporates();
   }, []);
+
+  const fetchCorporates = async () => {
+    const { data, error } = await supabase
+      .from("corporates")
+      .select("*");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setCorporates(data || []);
+  };
 
   const fetchPlans = async () => {
     const { data, error } = await supabase
@@ -51,7 +68,15 @@ export default function AddMember() {
       // 1️⃣ Create Profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .insert([{ full_name: fullName, phone }])
+        .insert([
+  {
+    full_name: fullName,
+    phone,
+    corporate_id:
+      category === "corporate" ? selectedCorporate : null,
+  },
+])
+
         .select()
         .single();
 
@@ -198,6 +223,29 @@ export default function AddMember() {
               <option value="annual">Annual</option>
             </select>
           </div>
+
+{category === "corporate" && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Select Corporate Company
+    </label>
+
+    <select
+      value={selectedCorporate}
+      onChange={(e) => setSelectedCorporate(e.target.value)}
+      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
+      required
+    >
+      <option value="">Choose Company</option>
+      {corporates.map((corp) => (
+        <option key={corp.id} value={corp.id}>
+          {corp.company_name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
 
         </div>
 
