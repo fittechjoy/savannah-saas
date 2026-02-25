@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useLocation } from "react-router-dom";
+import { calculateRenewal } from "../utils/billingEngine";
+
 
 export default function PaymentsPage() {
   const location = useLocation();
@@ -59,76 +61,98 @@ export default function PaymentsPage() {
   };
 
   const recordPayment = async () => {
-    if (!selectedMember || !amount) {
-      alert("Select member and enter amount");
-      return;
-    }
+  if (!selectedMember) {
+    alert("Select member");
+    return;
+  }
 
-    // 1️⃣ Get Active Membership
-    const { data: membership, error: membershipError } = await supabase
+  // 1️⃣ Get Active or Expired Membership
+  const { data: membership, error: membershipError } =
+    await supabase
       .from("memberships")
       .select(`
         *,
-        membership_plans ( duration )
+        membership_plans (*)
       `)
       .eq("user_id", selectedMember)
-      .eq("status", "active")
       .single();
 
-    if (membershipError || !membership) {
-      alert("No active membership found.");
-      return;
-    }
+  if (membershipError || !membership) {
+    alert("Membership not found.");
+    return;
+  }
 
-    // 2️⃣ Insert Payment (CORRECT columns)
-    const { error: paymentError } = await supabase
-      .from("payments")
-      .insert([
-        {
-          user_id: selectedMember,
-          membership_id: membership.id,
-          amount: Number(amount),
-          method: method,
-        },
-      ]);
+  const plan = membership.membership_plans;
 
-    if (paymentError) {
-      console.error(paymentError);
-      alert("Payment failed.");
-      return;
-    }
+  const today = new Date();
 
-    // 3️⃣ Extend Expiry Date
-    let newExpiry = new Date(membership.expiry_date);
-    const duration = membership.membership_plans.duration;
+  // 2️⃣ Get Unused Freeze Days
+  const { data: freezes } = await supabase
+    .from("membership_freezes")
+    .select("*")
+    .eq("membership_id", membership.id)
+    .eq("is_applied", false);
 
-    if (duration === "monthly")
-      newExpiry.setMonth(newExpiry.getMonth() + 1);
+  const freezeDays =
+    freezes?.reduce((sum, f) => sum + f.freeze_days, 0) || 0;
 
-    if (duration === "quarterly")
-      newExpiry.setMonth(newExpiry.getMonth() + 3);
+  // 3️⃣ Calculate Renewal Using Engine
+  const { amountDue, newExpiry, freezeDiscount } =
+    calculateRenewal({
+      membership,
+      plan,
+      today,
+      freezeDays,
+    });
 
-    if (duration === "semi_annual")
-      newExpiry.setMonth(newExpiry.getMonth() + 6);
+  // 4️⃣ Record Payment
+  const { error: paymentError } = await supabase
+    .from("payments")
+    .insert([
+      {
+        user_id: selectedMember,
+        membership_id: membership.id,
+        amount: amountDue,
+        method: method,
+      },
+    ]);
 
-    if (duration === "annual")
-      newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+  if (paymentError) {
+    console.error(paymentError);
+    alert("Payment failed.");
+    return;
+  }
 
+  // 5️⃣ Update Membership
+  await supabase
+    .from("memberships")
+    .update({
+      expiry_date: newExpiry,
+      outstanding_balance: 0,
+      status: "active",
+    })
+    .eq("id", membership.id);
+
+  // 6️⃣ Mark Freeze Records As Applied
+  if (freezeDays > 0) {
     await supabase
-      .from("memberships")
-      .update({
-        expiry_date: newExpiry,
-        status: "active",
-      })
-      .eq("id", membership.id);
+      .from("membership_freezes")
+      .update({ is_applied: true })
+      .eq("membership_id", membership.id)
+      .eq("is_applied", false);
+  }
 
-    // Reset
-    setAmount("");
-    setMethod("cash");
+  alert(
+    `Payment successful.\nFreeze discount applied: KES ${freezeDiscount.toFixed(
+      2
+    )}`
+  );
 
-    fetchPayments();
-    alert("Payment recorded & membership renewed");
-  };
+  fetchPayments();
+};
+
+
+  
 
  return (
   <div className="px-4 sm:px-6 lg:px-0 max-w-6xl mx-auto space-y-8">

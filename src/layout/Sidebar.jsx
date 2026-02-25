@@ -121,6 +121,16 @@ export default function Sidebar({ closeSidebar }) {
             Attendance
           </NavLink>
 
+<NavLink
+            to="/freeze-membership"
+            onClick={closeSidebar}
+            className={({ isActive }) =>
+              `${baseStyle} ${isActive ? activeStyle : inactiveStyle}`
+            }
+          >
+            Freeze Membership
+          </NavLink>  
+
           <NavLink
             to="/reports"
             onClick={closeSidebar}

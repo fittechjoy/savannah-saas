@@ -13,7 +13,7 @@ import AddMember from "./pages/AddMember";
 import MembershipPlansPage from "./pages/MembershipPlansPage";
 import CorporateBillingPage from "./pages/CorporateBillingPage";
 import CorporateCompaniesPage from "./pages/CorporateCompaniesPage";
-
+import FreezeMembershipPage from "./pages/FreezeMembershipPage";
 
 
 function App() {
@@ -121,6 +121,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/freeze-membership"
+          element={
+            <ProtectedRoute user={profile} allowedRoles={["admin"]}>
+              <FreezeMembershipPage />
+            </ProtectedRoute>
+          }
+        />    
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
