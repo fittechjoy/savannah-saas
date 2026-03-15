@@ -11,47 +11,73 @@ export default function AddMember() {
   const [duration, setDuration] = useState("monthly");
   const [method, setMethod] = useState("cash");
   const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [corporates, setCorporates] = useState([]);
   const [selectedCorporate, setSelectedCorporate] = useState("");
+  const [price, setPrice] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [expiryPreview, setExpiryPreview] = useState(null);
 
+  useEffect(() => {
+  calculateExpiryPreview();
+}, [duration]);
 
   useEffect(() => {
     fetchPlans();
     fetchCorporates();
   }, []);
 
-  const fetchCorporates = async () => {
-    const { data, error } = await supabase
-      .from("corporates")
+  useEffect(() => {
+    fetchPrice();
+  }, [category, duration]);
+
+  const fetchPlans = async () => {
+    const { data } = await supabase
+      .from("membership_plans")
       .select("*");
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+    setPlans(data || []);
+  };
+
+  const fetchCorporates = async () => {
+    const { data } = await supabase
+      .from("corporates")
+      .select("*");
 
     setCorporates(data || []);
   };
 
-  const fetchPlans = async () => {
-    const { data, error } = await supabase
-      .from("membership_plans")
-      .select("*");
+  const fetchPrice = async () => {
+    const today = new Date().getDate();
 
-    if (error) {
-      console.error(error);
-      return;
+    // Monthly → use prorated table
+    if (duration === "monthly" && category !== "corporate") {
+      const { data } = await supabase
+        .from("prorated_rates")
+        .select("price")
+        .eq("category", category)
+        .eq("day_of_month", today)
+        .single();
+
+      if (data) setPrice(data.price);
     }
 
-    setPlans(data || []);
+    // Other plans → use membership_plans
+    else {
+      const { data } = await supabase
+        .from("membership_plans")
+        .select("price")
+        .eq("category", category)
+        .eq("duration", duration)
+        .single();
+
+      if (data) setPrice(data.price);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (loading) return;
-
     setLoading(true);
 
     try {
@@ -65,18 +91,17 @@ export default function AddMember() {
         return;
       }
 
-      // 1️⃣ Create Profile
+      // Create Profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .insert([
-  {
-    full_name: fullName,
-    phone,
-    corporate_id:
-      category === "corporate" ? selectedCorporate : null,
-  },
-])
-
+          {
+            full_name: fullName,
+            phone,
+            corporate_id:
+              category === "corporate" ? selectedCorporate : null,
+          },
+        ])
         .select()
         .single();
 
@@ -85,16 +110,39 @@ export default function AddMember() {
       const startDate = new Date();
       let expiryDate = new Date();
 
-      if (duration === "monthly")
-        expiryDate.setMonth(expiryDate.getMonth() + 1);
+      if (duration === "monthly") {
+  const today = new Date().getDate();
+  const now = new Date();
+
+  // Join 1–5 → end of this month
+  if (today <= 5) {
+    expiryDate = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0
+    );
+  }
+
+  // Join 6–end → end of next month
+  else {
+    expiryDate = new Date(
+      now.getFullYear(),
+      now.getMonth() + 2,
+      0
+    );
+  }
+}
+
       if (duration === "quarterly")
         expiryDate.setMonth(expiryDate.getMonth() + 3);
+
       if (duration === "semi_annual")
         expiryDate.setMonth(expiryDate.getMonth() + 6);
+
       if (duration === "annual")
         expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-      // 2️⃣ Create Membership
+      // Create Membership
       const { data: membership, error: membershipError } =
         await supabase
           .from("memberships")
@@ -112,14 +160,14 @@ export default function AddMember() {
 
       if (membershipError) throw membershipError;
 
-      // 3️⃣ Record Initial Payment
+      // Record Payment
       const { error: paymentError } = await supabase
         .from("payments")
         .insert([
           {
             user_id: profile.id,
             membership_id: membership.id,
-            amount: selectedPlan.price,
+            amount: price,
             method: method,
           },
         ]);
@@ -137,159 +185,185 @@ export default function AddMember() {
     }
   };
 
-  const selectedPrice =
-    plans.find(
-      (p) => p.category === category && p.duration === duration
-    )?.price || 0;
+  const calculateExpiryPreview = () => {
+  const now = new Date();
+  let expiry = new Date();
+
+  if (duration === "monthly") {
+    const today = now.getDate();
+
+    if (today <= 5) {
+      // End of current month
+      expiry = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else {
+      // End of next month
+      expiry = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+    }
+  }
+
+  if (duration === "quarterly") {
+    expiry = new Date(now.getFullYear(), now.getMonth() + 3, 0);
+  }
+
+  if (duration === "semi_annual") {
+    expiry = new Date(now.getFullYear(), now.getMonth() + 6, 0);
+  }
+
+  if (duration === "annual") {
+    expiry = new Date(now.getFullYear() + 1, now.getMonth(), 0);
+  }
+
+  setExpiryPreview(expiry);
+};
+
+
 
   return (
-  <div className="px-4 sm:px-6 lg:px-0 max-w-3xl mx-auto">
+    <div className="px-4 sm:px-6 lg:px-0 max-w-3xl mx-auto">
 
-    {/* Page Header */}
-    <div className="mb-6 sm:mb-8">
-      <h1 className="text-2xl sm:text-3xl font-semibold text-black">
-        Add New Member
-      </h1>
-      <p className="text-gray-500 mt-2 text-sm sm:text-base">
-        Register a new member and record initial payment.
-      </p>
-    </div>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-black">
+          Add New Member
+        </h1>
+        <p className="text-gray-500 mt-2 text-sm sm:text-base">
+          Register a new member and record initial payment.
+        </p>
+      </div>
 
-    {/* Card */}
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8">
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-
-        {/* Full Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Full Name
-          </label>
-          <input
-            type="text"
-            placeholder="Enter member name"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Phone */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Phone Number
-          </label>
-          <input
-            type="tel"
-            placeholder="Enter phone number"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-          />
-        </div>
-
-        {/* Category + Duration */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Membership Category
+              Full Name
             </label>
-            <select
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="tenant">Tenant</option>
-              <option value="non_tenant">Non Tenant</option>
-              <option value="corporate">Corporate</option>
-            </select>
+            <input
+              type="text"
+              placeholder="Enter member name"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Plan Duration
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              placeholder="Enter phone number"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Membership Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3"
+              >
+                <option value="tenant">Tenant</option>
+                <option value="non_tenant">Non Tenant</option>
+                <option value="corporate">Corporate</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Plan Duration
+              </label>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="semi_annual">Semi Annual</option>
+                <option value="annual">Annual</option>
+              </select>
+            </div>
+
+          </div>
+
+          {category === "corporate" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Corporate Company
+              </label>
+
+              <select
+                value={selectedCorporate}
+                onChange={(e) => setSelectedCorporate(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                required
+              >
+                <option value="">Choose Company</option>
+                {corporates.map((corp) => (
+                  <option key={corp.id} value={corp.id}>
+                    {corp.company_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex justify-between">
+            <span className="text-gray-500 text-sm">
+              Membership Price
+            </span>
+            <span className="text-lg font-semibold text-orange-500">
+              KES {price.toLocaleString()}
+            </span>
+          </div>
+          {expiryPreview && (
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex justify-between">
+              <span className="text-gray-500 text-sm">
+                Expiry Date Preview
+              </span>
+              <span className="text-lg font-semibold text-orange-500">
+                {expiryPreview.toLocaleDateString()}
+              </span>
+            </div>
+          )}                
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payment Method
             </label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3"
             >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="semi_annual">Semi Annual</option>
-              <option value="annual">Annual</option>
+              <option value="cash">Cash</option>
+              <option value="mpesa">Mpesa</option>
+              <option value="card">Card</option>
+              <option value="bank">Bank Transfer</option>
             </select>
           </div>
 
-{category === "corporate" && (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
-      Select Corporate Company
-    </label>
-
-    <select
-      value={selectedCorporate}
-      onChange={(e) => setSelectedCorporate(e.target.value)}
-      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
-      required
-    >
-      <option value="">Choose Company</option>
-      {corporates.map((corp) => (
-        <option key={corp.id} value={corp.id}>
-          {corp.company_name}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
-
-
-        </div>
-
-        {/* Price Display */}
-        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <span className="text-gray-500 text-sm">
-            Membership Price
-          </span>
-          <span className="text-lg sm:text-xl font-semibold text-orange-500">
-            KES {selectedPrice.toLocaleString()}
-          </span>
-        </div>
-
-        {/* Payment Method */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Payment Method
-          </label>
-          <select
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
-            value={method}
-            onChange={(e) => setMethod(e.target.value)}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-orange-500 text-white py-3 rounded-xl"
           >
-            <option value="cash">Cash</option>
-            <option value="mpesa">Mpesa</option>
-            <option value="card">Card</option>
-            <option value="bank">Bank Transfer</option>
-          </select>
-        </div>
+            {loading ? "Processing..." : "Add Member"}
+          </button>
 
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 sm:py-4 rounded-xl shadow-sm transition disabled:opacity-50"
-        >
-          {loading ? "Processing..." : "Add Member"}
-        </button>
-
-      </form>
+        </form>
+      </div>
     </div>
-  </div>
-);
-
-
-
+  );
 }

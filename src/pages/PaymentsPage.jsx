@@ -3,14 +3,13 @@ import { supabase } from "../lib/supabase";
 import { useLocation } from "react-router-dom";
 import { calculateRenewal } from "../utils/billingEngine";
 
-
 export default function PaymentsPage() {
   const location = useLocation();
 
   const [payments, setPayments] = useState([]);
   const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amountDue, setAmountDue] = useState(0);
   const [method, setMethod] = useState("cash");
   const [totalRevenue, setTotalRevenue] = useState(0);
 
@@ -25,6 +24,7 @@ export default function PaymentsPage() {
   useEffect(() => {
     if (memberFromQuery) {
       setSelectedMember(memberFromQuery);
+      previewRenewal(memberFromQuery);
     }
   }, [memberFromQuery]);
 
@@ -60,261 +60,221 @@ export default function PaymentsPage() {
     setTotalRevenue(total);
   };
 
-  const recordPayment = async () => {
-  if (!selectedMember) {
-    alert("Select member");
-    return;
-  }
+  const previewRenewal = async (memberId) => {
 
-  // 1️⃣ Get Active or Expired Membership
-  const { data: membership, error: membershipError } =
-    await supabase
+    const { data: membership } = await supabase
       .from("memberships")
       .select(`
         *,
         membership_plans (*)
       `)
-      .eq("user_id", selectedMember)
+      .eq("user_id", memberId)
       .single();
 
-  if (membershipError || !membership) {
-    alert("Membership not found.");
-    return;
-  }
+    if (!membership) return;
 
-  const plan = membership.membership_plans;
+    const plan = membership.membership_plans;
+    const today = new Date();
+    const expiryDate = new Date(membership.expiry_date);
 
-  const today = new Date();
+    let renewalPrice;
 
-  // 2️⃣ Get Unused Freeze Days
-  const { data: freezes } = await supabase
-    .from("membership_freezes")
-    .select("*")
-    .eq("membership_id", membership.id)
-    .eq("is_applied", false);
+    const isExpired = today > expiryDate;
 
-  const freezeDays =
-    freezes?.reduce((sum, f) => sum + f.freeze_days, 0) || 0;
+    if (plan.duration === "monthly" && isExpired) {
 
-  // 3️⃣ Calculate Renewal Using Engine
-  const { amountDue, newExpiry, freezeDiscount } =
-    calculateRenewal({
+      const todayDay = today.getDate();
+
+      const { data } = await supabase
+        .from("prorated_rates")
+        .select("price")
+        .eq("category", plan.category)
+        .eq("day_of_month", todayDay)
+        .single();
+
+      renewalPrice = data?.price || plan.price;
+
+    } else {
+
+      renewalPrice = plan.price;
+
+    }
+
+    setAmountDue(renewalPrice);
+  };
+
+  const recordPayment = async () => {
+
+    if (!selectedMember) {
+      alert("Select member");
+      return;
+    }
+
+    const { data: membership, error: membershipError } =
+      await supabase
+        .from("memberships")
+        .select(`
+          *,
+          membership_plans (*)
+        `)
+        .eq("user_id", selectedMember)
+        .single();
+
+    if (membershipError || !membership) {
+      alert("Membership not found.");
+      return;
+    }
+
+    const plan = membership.membership_plans;
+    const today = new Date();
+    const expiryDate = new Date(membership.expiry_date);
+
+    const { data: freezes } = await supabase
+      .from("membership_freezes")
+      .select("*")
+      .eq("membership_id", membership.id)
+      .eq("is_applied", false);
+
+    const freezeDays =
+      freezes?.reduce((sum, f) => sum + f.freeze_days, 0) || 0;
+
+    let renewalPrice;
+
+    const isExpired = today > expiryDate;
+
+    if (plan.duration === "monthly" && isExpired) {
+
+      const todayDay = today.getDate();
+
+      const { data } = await supabase
+        .from("prorated_rates")
+        .select("price")
+        .eq("category", plan.category)
+        .eq("day_of_month", todayDay)
+        .single();
+
+      renewalPrice = data?.price || plan.price;
+
+    } else {
+
+      renewalPrice = plan.price;
+
+    }
+
+    const { newExpiry } = calculateRenewal({
       membership,
       plan,
       today,
       freezeDays,
     });
 
-  // 4️⃣ Record Payment
-  const { error: paymentError } = await supabase
-    .from("payments")
-    .insert([
-      {
-        user_id: selectedMember,
-        membership_id: membership.id,
-        amount: amountDue,
-        method: method,
-      },
-    ]);
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .insert([
+        {
+          user_id: selectedMember,
+          membership_id: membership.id,
+          amount: renewalPrice,
+          method: method,
+        },
+      ]);
 
-  if (paymentError) {
-    console.error(paymentError);
-    alert("Payment failed.");
-    return;
-  }
+    if (paymentError) {
+      console.error(paymentError);
+      alert("Payment failed.");
+      return;
+    }
 
-  // 5️⃣ Update Membership
-  await supabase
-    .from("memberships")
-    .update({
-      expiry_date: newExpiry,
-      outstanding_balance: 0,
-      status: "active",
-    })
-    .eq("id", membership.id);
-
-  // 6️⃣ Mark Freeze Records As Applied
-  if (freezeDays > 0) {
     await supabase
-      .from("membership_freezes")
-      .update({ is_applied: true })
-      .eq("membership_id", membership.id)
-      .eq("is_applied", false);
-  }
+      .from("memberships")
+      .update({
+        expiry_date: newExpiry,
+        outstanding_balance: 0,
+        status: "active",
+      })
+      .eq("id", membership.id);
 
-  alert(
-    `Payment successful.\nFreeze discount applied: KES ${freezeDiscount.toFixed(
-      2
-    )}`
-  );
+    if (freezeDays > 0) {
+      await supabase
+        .from("membership_freezes")
+        .update({ is_applied: true })
+        .eq("membership_id", membership.id)
+        .eq("is_applied", false);
+    }
 
-  fetchPayments();
-};
+    alert("Payment successful.");
 
+    fetchPayments();
+  };
 
-  
+  return (
+    <div className="px-4 sm:px-6 lg:px-0 max-w-6xl mx-auto space-y-8">
 
- return (
-  <div className="px-4 sm:px-6 lg:px-0 max-w-6xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+          Payments
+        </h1>
+      </div>
 
-    {/* Header */}
-    <div>
-      <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-        Payments
-      </h1>
-    </div>
+      <div className="bg-white rounded-2xl shadow-sm border-l-4 border-orange-500 p-5 sm:p-6">
+        <p className="text-xs sm:text-sm text-slate-500 uppercase tracking-wide">
+          Total Revenue
+        </p>
+        <p className="text-2xl sm:text-3xl font-bold text-slate-800 mt-2">
+          KES {totalRevenue.toLocaleString()}
+        </p>
+      </div>
 
-    {/* Revenue Card */}
-    <div className="bg-white rounded-2xl shadow-sm border-l-4 border-orange-500 p-5 sm:p-6">
-      <p className="text-xs sm:text-sm text-slate-500 uppercase tracking-wide">
-        Total Revenue
-      </p>
-      <p className="text-2xl sm:text-3xl font-bold text-slate-800 mt-2">
-        KES {totalRevenue.toLocaleString()}
-      </p>
-    </div>
+      <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 space-y-5">
 
-    {/* Record Payment */}
-    <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 space-y-5">
+        <h2 className="font-semibold text-slate-700 text-base sm:text-lg">
+          Record Payment
+        </h2>
 
-      <h2 className="font-semibold text-slate-700 text-base sm:text-lg">
-        Record Payment
-      </h2>
-
-      <select
-        value={selectedMember}
-        onChange={(e) => setSelectedMember(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 outline-none"
-      >
-        <option value="">Select Member</option>
-        {members.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.full_name}
-          </option>
-        ))}
-      </select>
-
-      <input
-        type="number"
-        placeholder="Amount (KES)"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 outline-none"
-      />
-
-      <select
-        value={method}
-        onChange={(e) => setMethod(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 outline-none"
-      >
-        <option value="cash">Cash</option>
-        <option value="mpesa">Mpesa</option>
-        <option value="card">Card</option>
-        <option value="bank">Bank Transfer</option>
-      </select>
-
-      <button
-        onClick={recordPayment}
-        className="w-full bg-orange-500 text-white py-3 rounded-xl hover:bg-orange-600 transition font-medium"
-      >
-        Save Payment
-      </button>
-    </div>
-
-    {/* Desktop Table */}
-    <div className="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
-      {payments.length === 0 ? (
-        <div className="p-10 text-center text-slate-500">
-          No payments recorded yet.
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-600">
-              <tr>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Member</th>
-                <th className="px-6 py-4">Method</th>
-                <th className="px-6 py-4">Amount</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {payments.map((payment) => (
-                <tr key={payment.id} className="border-t hover:bg-gray-50 transition">
-                  <td className="px-6 py-4">
-                    {payment.payment_date
-                      ? new Date(payment.payment_date).toLocaleDateString("en-KE", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "-"}
-                  </td>
-                  <td className="px-6 py-4">
-                    {payment.profiles?.full_name}
-                  </td>
-                  <td className="px-6 py-4 capitalize">
-                    {payment.method}
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-orange-600">
-                    KES {Number(payment.amount).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-
-    {/* Mobile Card History */}
-    <div className="md:hidden space-y-4">
-      {payments.length === 0 && (
-        <div className="text-center text-slate-500 py-6">
-          No payments recorded yet.
-        </div>
-      )}
-
-      {payments.map((payment) => (
-        <div
-          key={payment.id}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2"
+        <select
+          value={selectedMember}
+          onChange={(e) => {
+            const id = e.target.value;
+            setSelectedMember(id);
+            previewRenewal(id);
+          }}
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 outline-none"
         >
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Date</span>
-            <span className="font-medium">
-              {payment.payment_date
-                ? new Date(payment.payment_date).toLocaleDateString("en-KE")
-                : "-"}
-            </span>
-          </div>
+          <option value="">Select Member</option>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.full_name}
+            </option>
+          ))}
+        </select>
 
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Member</span>
-            <span className="font-medium">
-              {payment.profiles?.full_name}
-            </span>
-          </div>
+        <input
+          type="number"
+          value={amountDue}
+          readOnly
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base bg-gray-100"
+        />
 
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Method</span>
-            <span className="capitalize font-medium">
-              {payment.method}
-            </span>
-          </div>
+        <select
+          value={method}
+          onChange={(e) => setMethod(e.target.value)}
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 outline-none"
+        >
+          <option value="cash">Cash</option>
+          <option value="mpesa">Mpesa</option>
+          <option value="card">Card</option>
+          <option value="bank">Bank Transfer</option>
+        </select>
 
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Amount</span>
-            <span className="font-semibold text-orange-600">
-              KES {Number(payment.amount).toLocaleString()}
-            </span>
-          </div>
-        </div>
-      ))}
+        <button
+          onClick={recordPayment}
+          className="w-full bg-orange-500 text-white py-3 rounded-xl hover:bg-orange-600 transition font-medium"
+        >
+          Save Payment
+        </button>
+
+      </div>
+
     </div>
-
-  </div>
-);
-
+  );
 }
