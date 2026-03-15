@@ -77,58 +77,55 @@ export function calculateFreezeDiscount({
   return freezeDays * dailyRate;
 }
 
-export function calculateRenewal({
-  membership,
-  plan,
-  today,
-  freezeDays = 0,
-}) {
-  const isExpired = new Date(today) > new Date(membership.expiry_date);
+export function calculateRenewal({ membership, plan, today, freezeDays }) {
 
-  let baseAmount = 0;
-  let newExpiry;
+  let baseDate = new Date(membership.expiry_date);
 
-  const durationMonths = getDurationMonths(plan.duration);
+  // If membership already expired
+  if (today > baseDate) {
+    baseDate = today;
+  }
 
-  // MONTHLY PLAN
+  let newExpiry = new Date(baseDate);
+
   if (plan.duration === "monthly") {
-    if (isExpired) {
-      const result = calculateMonthlyProrate(plan.price, today);
-      baseAmount = result.baseAmount;
-      newExpiry = result.expiryDate;
+
+    const day = today.getDate();
+
+    if (day <= 5) {
+      newExpiry = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     } else {
-      baseAmount = plan.price;
-
-      const nextMonth = new Date(today);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      newExpiry = getLastDayOfMonth(nextMonth);
+      newExpiry = new Date(today.getFullYear(), today.getMonth() + 2, 0);
     }
-  } else {
-    // LONG TERM PLANS
-    baseAmount = plan.price;
 
-    const nextCycle = new Date(today);
-    nextCycle.setMonth(nextCycle.getMonth() + durationMonths);
-    newExpiry = getLastDayOfMonth(nextCycle);
+  }
+
+  if (plan.duration === "quarterly") {
+    newExpiry.setDate(baseDate.getDate() + 90);
+  }
+
+  if (plan.duration === "semi_annual") {
+    newExpiry.setDate(baseDate.getDate() + 180);
+  }
+
+  if (plan.duration === "annual") {
+    newExpiry.setDate(baseDate.getDate() + 365);
   }
 
   // Add outstanding balance
   baseAmount += Number(membership.outstanding_balance || 0);
 
   // Apply freeze discount
-  const freezeDiscount = calculateFreezeDiscount({
-    freezeDays,
-    planPrice: plan.price,
-    duration: plan.duration,
-    referenceDate: today,
-  });
+  const dailyRate = plan.price / 30;
 
-  const finalAmount = baseAmount - freezeDiscount;
+const freezeDiscount = dailyRate * freezeDays;
 
-  return {
-    amountDue: Math.max(finalAmount, 0),
-    newExpiry,
-    freezeDiscount,
-  };
+const amountDue = Math.max(plan.price - freezeDiscount, 0);
+return {
+  amountDue,
+  newExpiry,
+  freezeDiscount
+};
+
 }
 
