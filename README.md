@@ -2,21 +2,20 @@ Savannah Fitness Exchange SaaS
 
 A modern gym management system built with React, Supabase, and Tailwind CSS.
 
-## 🚀 Features
+   Features
 
-- 🔐 Supabase Authentication (Role-Based Login)
-- 👥 Member Management
-- 💳 Payment Tracking & Revenue Monitoring
-- 📅 Attendance System (Daily Check-ins)
-- 📊 Reports Dashboard
-- 🧾 Membership Plans Management
-- 🔄 Automated Membership Renewal Logic
-- 🎨 Branded Black, Orange & White UI
-- 📱 Mobile Responsive Design
+- Supabase Authentication (Role-Based Login)
+- Member Management
+- Payment Tracking & Revenue Monitoring
+- Attendance System (Daily Check-ins)
+- Reports Dashboard
+- Membership Plans Management
+- Automated Membership Renewal Logic
+- Branded Black, Orange & White UI
+- Mobile Responsive Design
 
----
 
-## 🛠 Tech Stack
+  Tech Stack
 
 Frontend:
 - React (Vite)
@@ -29,9 +28,7 @@ Backend:
 Database:
 - PostgreSQL (via Supabase)
 
----
-
-## 🗂 Database Schema
+  Database Schema
 
 Main tables:
 - profiles (linked to auth.users)
@@ -42,7 +39,7 @@ Main tables:
 
 ---
 
-## 🔐 Authentication & Roles
+  Authentication & Roles
 
 Roles supported:
 - admin
